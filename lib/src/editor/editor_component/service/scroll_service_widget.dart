@@ -240,6 +240,7 @@ class _ScrollServiceWidgetState extends State<ScrollServiceWidget>
     forward.jumpToBottom();
   }
 
+  ///modified
   @override
   void startAutoScroll(
     Offset offset, {
@@ -247,6 +248,19 @@ class _ScrollServiceWidgetState extends State<ScrollServiceWidget>
     AxisDirection? direction,
     Duration? duration,
   }) {
+    final dragMode =
+        editorState.selectionExtraInfo?['selection_drag_mode']?.toString();
+
+    final isSelectionHandleDrag =
+        dragMode == 'MobileSelectionDragMode.leftSelectionHandle' ||
+            dragMode == 'MobileSelectionDragMode.rightSelectionHandle';
+
+    // disableAutoScroll suppresses normal cursor/selection auto-scroll,
+    // but keeps edge scrolling while dragging selection handles.
+    if (editorState.disableAutoScroll && !isSelectionHandleDrag) {
+      return;
+    }
+
     forward.startAutoScroll(
       offset,
       edgeOffset: edgeOffset,

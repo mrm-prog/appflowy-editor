@@ -237,12 +237,22 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
         );
       }
     }
-
+//modification start
+    final actualTextPosition = TextPosition(
+      offset: position.offset,
+      affinity: delta?.isNotEmpty == true && position.offset == delta!.length
+          ? TextAffinity.upstream
+          : TextAffinity.downstream,
+    );
+//modification end
     double? cursorHeight =
-        _renderParagraph?.getFullHeightForCaret(textPosition);
-    Offset? cursorOffset =
-        _renderParagraph?.getOffsetForCaret(textPosition, Rect.zero) ??
-            Offset.zero;
+        _renderParagraph?.getFullHeightForCaret(actualTextPosition);
+
+    Offset? cursorOffset = _renderParagraph?.getOffsetForCaret(
+          actualTextPosition,
+          Rect.zero,
+        ) ??
+        Offset.zero;
 
     if (placeholderCursorHeight != null) {
       cursorHeight = max(cursorHeight ?? 0, placeholderCursorHeight);

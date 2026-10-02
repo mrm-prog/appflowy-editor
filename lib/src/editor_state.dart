@@ -664,6 +664,7 @@ class EditorState {
     _observer.close();
   }
 
+  ///modified
   void updateAutoScroller(
     ScrollableState scrollableState,
   ) {
@@ -698,6 +699,41 @@ class EditorState {
       this.scrollableState = scrollableState;
     }
   }
+
+  // void updateAutoScroller(
+  //   ScrollableState scrollableState,
+  // ) {
+  //   if (this.scrollableState != scrollableState) {
+  //     autoScroller?.stopAutoScroll();
+  //     final bool isDesktopOrWeb = PlatformExtension.isDesktopOrWeb;
+  //     late AutoScroller scroller;
+  //     scroller = AutoScroller(
+  //       scrollableState,
+  //       velocityScalar: 0.15,
+  //       minimumAutoScrollDelta: 0.07,
+  //       maxAutoScrollDelta: 3.5,
+  //       animationDuration: Duration.zero,
+  //       onScrollViewScrolled: () {
+  //         _notifyScrollViewScrolledListeners();
+  //         if (!isDesktopOrWeb) {
+  //           final dynamic dragMode = selectionExtraInfo?[_selectionDragModeKey];
+  //           final bool isDraggingSelection = dragMode != null &&
+  //               dragMode.toString() != 'MobileSelectionDragMode.none';
+  //           if (!isDraggingSelection) {
+  //             return;
+  //           }
+  //           WidgetsBinding.instance.addPostFrameCallback((_) {
+  //             if (autoScroller == scroller) {
+  //               scroller.continueToAutoScroll();
+  //             }
+  //           });
+  //         }
+  //       },
+  //     );
+  //     autoScroller = scroller;
+  //     this.scrollableState = scrollableState;
+  //   }
+  // }
 
   void _recordRedoOrUndo(
     ApplyOptions options,

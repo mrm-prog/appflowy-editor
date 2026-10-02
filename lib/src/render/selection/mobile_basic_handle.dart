@@ -152,6 +152,20 @@ class DragHandle extends _IDragHandle {
   }
 }
 
+///added
+class _SelectionHandlePanGestureRecognizer extends PanGestureRecognizer {
+  @override
+  bool hasSufficientGlobalDistanceToAccept(
+    PointerDeviceKind pointerDeviceKind,
+    double? deviceTouchSlop,
+  ) {
+    return globalDistanceMoved.abs() >
+        computeHitSlop(pointerDeviceKind, gestureSettings);
+  }
+}
+
+///
+
 /// Selection (left/right) drag handle. Owns its own gesture detector that
 /// fills the entire outer touch zone (provided by [Positioned.fromRect] in
 /// [MobileSelectionHandle]) and consumes both pans and taps so the editor's
@@ -231,11 +245,19 @@ class _SelectionDragHandleState extends State<_SelectionDragHandle> {
 
     return RawGestureDetector(
       behavior: HitTestBehavior.opaque,
+      //modified
       gestures: {
-        PanGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-          () => PanGestureRecognizer(),
+        _SelectionHandlePanGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<
+                _SelectionHandlePanGestureRecognizer>(
+          () => _SelectionHandlePanGestureRecognizer(),
           (recognizer) {
+            ///
+            // gestures: {
+            //   PanGestureRecognizer:
+            //       GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+            //     () => PanGestureRecognizer(),
+            //     (recognizer) {
             recognizer
               ..dragStartBehavior = DragStartBehavior.down
               ..onStart = (details) {
