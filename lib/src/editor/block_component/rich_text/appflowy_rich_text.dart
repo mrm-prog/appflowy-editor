@@ -6,33 +6,30 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-typedef TextSpanDecoratorForAttribute =
-    InlineSpan Function(
-      BuildContext context,
-      Node node,
-      int index,
-      TextInsert text,
-      TextSpan before,
-      TextSpan after,
-    );
+typedef TextSpanDecoratorForAttribute = InlineSpan Function(
+  BuildContext context,
+  Node node,
+  int index,
+  TextInsert text,
+  TextSpan before,
+  TextSpan after,
+);
 
 typedef AppFlowyTextSpanDecorator = TextSpan Function(TextSpan textSpan);
-typedef AppFlowyAutoCompleteTextProvider =
-    String? Function(BuildContext context, Node node, TextSpan? textSpan);
+typedef AppFlowyAutoCompleteTextProvider = String? Function(
+    BuildContext context, Node node, TextSpan? textSpan);
 
-typedef AppFlowyTextSpanOverlayBuilder =
-    List<Widget> Function(
-      BuildContext context,
-      Node node,
-      SelectableMixin delegate,
-    );
+typedef AppFlowyTextSpanOverlayBuilder = List<Widget> Function(
+  BuildContext context,
+  Node node,
+  SelectableMixin delegate,
+);
 
-typedef AppFlowyTextSpanBackgroundBuilder =
-    List<Widget> Function(
-      BuildContext context,
-      Node node,
-      SelectableMixin delegate,
-    );
+typedef AppFlowyTextSpanBackgroundBuilder = List<Widget> Function(
+  BuildContext context,
+  Node node,
+  SelectableMixin delegate,
+);
 
 class AppFlowyRichText extends StatefulWidget {
   const AppFlowyRichText({
@@ -186,9 +183,9 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
 
   @override
   Position end() => Position(
-    path: widget.node.path,
-    offset: widget.node.delta?.toPlainText().length ?? 0,
-  );
+        path: widget.node.path,
+        offset: widget.node.delta?.toPlainText().length ?? 0,
+      );
 
   @override
   Rect getBlockRect({bool shiftWithBaseOffset = false}) {
@@ -211,14 +208,14 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
     }
 
     final textPosition = TextPosition(offset: position.offset);
-    final double? placeholderCursorHeight = _placeholderRenderParagraph
-        ?.getFullHeightForCaret(textPosition);
+    final double? placeholderCursorHeight =
+        _placeholderRenderParagraph?.getFullHeightForCaret(textPosition);
     Offset? placeholderCursorOffset =
         _placeholderRenderParagraph?.getOffsetForCaret(
-          textPosition,
-          Rect.zero,
-        ) ??
-        Offset.zero;
+              textPosition,
+              Rect.zero,
+            ) ??
+            Offset.zero;
     if (textDirection() == TextDirection.rtl) {
       if (widget.placeholderText.trim().isNotEmpty) {
         placeholderCursorOffset = placeholderCursorOffset.translate(
@@ -227,25 +224,38 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
         );
       }
     }
+
     //modification start
+
     final actualTextPosition = TextPosition(
       offset: position.offset,
       affinity: delta?.isNotEmpty == true && position.offset == delta!.length
           ? TextAffinity.upstream
           : TextAffinity.downstream,
     );
-    //modification end
-    double? cursorHeight = _renderParagraph?.getFullHeightForCaret(
+
+    final actualCursorHeight = _renderParagraph?.getFullHeightForCaret(
       actualTextPosition,
     );
 
-    Offset? cursorOffset =
-        _renderParagraph?.getOffsetForCaret(actualTextPosition, Rect.zero) ??
+    double? cursorHeight = placeholderCursorHeight ?? actualCursorHeight;
+
+    Offset? cursorOffset = _renderParagraph?.getOffsetForCaret(
+          actualTextPosition,
+          Rect.zero,
+        ) ??
         Offset.zero;
 
-    if (placeholderCursorHeight != null) {
-      cursorHeight = max(cursorHeight ?? 0, placeholderCursorHeight);
+    if (actualCursorHeight != null &&
+        cursorHeight != null &&
+        actualCursorHeight != cursorHeight) {
+      cursorOffset = Offset(
+        cursorOffset.dx,
+        cursorOffset.dy + (actualCursorHeight - cursorHeight) / 2.0,
+      );
     }
+
+    //modification end
 
     if (delta?.isEmpty == true) {
       cursorOffset = placeholderCursorOffset;
@@ -280,8 +290,7 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
   @override
   Selection? getWordEdgeInOffset(Offset offset) {
     final localOffset = _renderParagraph?.globalToLocal(offset) ?? Offset.zero;
-    final textPosition =
-        _renderParagraph?.getPositionForOffset(localOffset) ??
+    final textPosition = _renderParagraph?.getPositionForOffset(localOffset) ??
         const TextPosition(offset: 0);
     final textRange =
         _renderParagraph?.getWordBoundary(textPosition) ?? TextRange.empty;
@@ -297,8 +306,7 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
   @override
   Selection? getWordBoundaryInOffset(Offset offset) {
     final localOffset = _renderParagraph?.globalToLocal(offset) ?? Offset.zero;
-    final textPosition =
-        _renderParagraph?.getPositionForOffset(localOffset) ??
+    final textPosition = _renderParagraph?.getPositionForOffset(localOffset) ??
         const TextPosition(offset: 0);
     final textRange =
         _renderParagraph?.getWordBoundary(textPosition) ?? TextRange.empty;
