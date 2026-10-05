@@ -95,6 +95,21 @@ class _ScrollServiceWidgetState extends State<ScrollServiceWidget>
       return;
     }
 
+    final dragMode =
+        editorState.selectionExtraInfo?['selection_drag_mode']?.toString();
+
+    final isSelectionHandleDrag =
+        dragMode == 'MobileSelectionDragMode.leftSelectionHandle' ||
+            dragMode == 'MobileSelectionDragMode.rightSelectionHandle';
+
+    // Left/right selection handles drive autoscroll directly from the actual
+    // pointer position in MobileSelectionService.onPanUpdate().
+    if (isSelectionHandleDrag) {
+      lastSelection = selection;
+
+      return;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final selectionRects = editorState.selectionRects();
       if (selectionRects.isEmpty) {

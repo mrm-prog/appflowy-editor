@@ -130,22 +130,20 @@ class _MobileSelectionServiceWidgetState
 
   @override
   Widget build(BuildContext context) {
-    final stack = Stack(
+    final editorLayer = Stack(
       clipBehavior: Clip.none,
       children: [
         widget.child,
 
-        // magnifier for zoom in the text.
+        // Magnifier for zooming the text.
         if (widget.showMagnifier) _buildMagnifier(),
 
-        // the handles for expanding the selection area.
-        _buildLeftHandle(),
-        _buildRightHandle(),
+        // Keep collapsed cursor handling unchanged.
         _buildCollapsedHandle(),
       ],
     );
 
-    return PlatformExtension.isIOS
+    final editorGestureLayer = PlatformExtension.isIOS
         ? MobileSelectionGestureDetector(
             onTapUp: _onTapUpIOS,
             onDoubleTapUp: _onDoubleTapUp,
@@ -153,7 +151,7 @@ class _MobileSelectionServiceWidgetState
             onLongPressStart: _onLongPressStartIOS,
             onLongPressMoveUpdate: _onLongPressUpdateIOS,
             onLongPressEnd: _onLongPressEndIOS,
-            child: stack,
+            child: editorLayer,
           )
         : MobileSelectionGestureDetector(
             onTapUp: _onTapUpAndroid,
@@ -164,8 +162,20 @@ class _MobileSelectionServiceWidgetState
             onLongPressEnd: _onLongPressEndAndroid,
             onPanUpdate: _onPanUpdateAndroid,
             onPanEnd: _onPanEndAndroid,
-            child: stack,
+            child: editorLayer,
           );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        editorGestureLayer,
+
+        // Selection handles must sit above the editor gesture detector so
+        // their pan gestures don't compete with editor long-press/pan gestures.
+        _buildLeftHandle(),
+        _buildRightHandle(),
+      ],
+    );
   }
 
   Widget _buildMagnifier() {
@@ -320,9 +330,23 @@ class _MobileSelectionServiceWidgetState
 
         final editorStyle = editorState.editorStyle;
 
+        final selectionRect =
+            handleType == HandleType.left ? rects.first : rects.last;
+
+        final handleX = handleType == HandleType.left
+            ? selectionRect.left
+            : selectionRect.right;
+
+        final handleRect = Rect.fromLTRB(
+          handleX,
+          selectionRect.top,
+          handleX,
+          selectionRect.bottom,
+        );
+
         return MobileSelectionHandle(
           layerLink: node.layerLink,
-          rect: handleType == HandleType.left ? rects.first : rects.last,
+          rect: handleRect,
           handleType: handleType,
           handleColor: isCollapsedWhenDraggingHandle
               ? Colors.transparent
@@ -559,6 +583,22 @@ class _MobileSelectionServiceWidgetState
 
     dragMode = mode;
 
+    // Set the drag mode immediately, before the first pan update, so the
+    // scroll service knows handle autoscroll is allowed even when the
+    // selection has not changed yet.
+    unawaited(
+      editorState.updateSelectionWithReason(
+        selection,
+        reason: SelectionUpdateReason.uiEvent,
+        customSelectionType: SelectionType.inline,
+        extraInfo: {
+          selectionDragModeKey: dragMode,
+          selectionExtraInfoDoNotAttachTextService:
+              dragMode == MobileSelectionDragMode.cursor,
+        },
+      ),
+    );
+
     return selection;
   }
 
@@ -571,7 +611,7 @@ class _MobileSelectionServiceWidgetState
       return null;
     }
 
-    // only support selection mode now.
+    // Only support selection mode now.
     if (editorState.selection == null ||
         dragMode == MobileSelectionDragMode.none) {
       return null;
@@ -579,13 +619,25 @@ class _MobileSelectionServiceWidgetState
 
     final panEndOffset = details.globalPosition;
 
+    // Always retain the actual finger position. It is also used while
+    // AutoScroller moves the viewport under a stationary finger.
+    _lastPanOffset.value = panEndOffset;
+
     final dy = editorState.service.scrollService?.dy;
+
     final panStartOffset = dy == null
         ? _panStartOffset!
-        : _panStartOffset!.translate(0, _panStartScrollDy! - dy);
+        : _panStartOffset!.translate(
+            0,
+            _panStartScrollDy! - dy,
+          );
+
     final end = getNodeInOffset(panEndOffset)
         ?.selectable
-        ?.getSelectionInRange(panStartOffset, panEndOffset)
+        ?.getSelectionInRange(
+          panStartOffset,
+          panEndOffset,
+        )
         .end;
 
     Selection? newSelection;
@@ -604,18 +656,34 @@ class _MobileSelectionServiceWidgetState
       } else if (dragMode == MobileSelectionDragMode.cursor) {
         newSelection = Selection.collapsed(end);
       }
-      _lastPanOffset.value = panEndOffset;
     }
 
     if (newSelection != null) {
       updateSelection(newSelection);
     }
 
+    final isSelectionHandleDrag =
+        dragMode == MobileSelectionDragMode.leftSelectionHandle ||
+            dragMode == MobileSelectionDragMode.rightSelectionHandle;
+
+    if (isSelectionHandleDrag) {
+      editorState.service.scrollService?.startAutoScroll(
+        panEndOffset,
+        edgeOffset: editorState.autoScrollEdgeOffset,
+        duration: const Duration(milliseconds: 2),
+      );
+    }
+
     return newSelection;
   }
 
   @override
-  void onPanEnd(DragEndDetails details, MobileSelectionDragMode mode) {
+  void onPanEnd(
+    DragEndDetails details,
+    MobileSelectionDragMode mode,
+  ) {
+    editorState.service.scrollService?.stopAutoScroll();
+
     _clearPanVariables();
     dragMode = MobileSelectionDragMode.none;
 

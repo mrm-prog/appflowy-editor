@@ -55,51 +55,71 @@ class PageBlockComponent extends BlockComponentStatelessWidget {
     final scrollController = context.read<EditorScrollController?>();
     final items = node.children;
 
-    if (scrollController == null || scrollController.shrinkWrap) {
+    Widget buildShrinkWrapContent(BuildContext context) {
+      return Column(
+        children: [
+          if (header != null) header!,
+          ...items.map(
+            (e) {
+              Widget child = editorState.renderer.build(context, e);
+
+              if (wrapper != null) {
+                child = wrapper!(context, node: e, child: child);
+              }
+
+              return Container(
+                constraints: BoxConstraints(
+                  maxWidth: editorState.editorStyle.maxWidth ?? double.infinity,
+                ),
+                padding: editorState.editorStyle.padding,
+                child: child,
+              );
+            },
+          ),
+          if (footer != null) footer!,
+        ],
+      );
+    }
+
+    if (scrollController == null) {
       return SingleChildScrollView(
         child: Builder(
           builder: (context) {
             final scroller = Scrollable.maybeOf(context);
+
             if (scroller != null) {
               editorState.updateAutoScroller(scroller);
             }
 
-            return Column(
-              children: [
-                if (header != null) header!,
-                ...items.map(
-                  (e) {
-                    Widget child = editorState.renderer.build(context, e);
-                    if (wrapper != null) {
-                      child = wrapper!(context, node: e, child: child);
-                    }
-
-                    return Container(
-                      constraints: BoxConstraints(
-                        maxWidth:
-                            editorState.editorStyle.maxWidth ?? double.infinity,
-                      ),
-                      padding: editorState.editorStyle.padding,
-                      child: child,
-                    );
-                  },
-                ),
-                if (footer != null) footer!,
-              ],
-            );
+            return buildShrinkWrapContent(context);
           },
         ),
       );
+    } else if (scrollController.shrinkWrap) {
+      final scroller = Scrollable.maybeOf(context);
+
+      if (scroller != null) {
+        editorState.updateAutoScroller(scroller);
+      }
+
+      return buildShrinkWrapContent(context);
     } else {
       int extentCount = 0;
-      if (header != null) extentCount++;
-      if (footer != null) extentCount++;
+
+      if (header != null) {
+        extentCount++;
+      }
+
+      if (footer != null) {
+        extentCount++;
+      }
 
       return ScrollablePositionedList.builder(
         shrinkWrap: scrollController.shrinkWrap,
         itemCount: items.length + extentCount,
         itemBuilder: (context, index) {
           editorState.updateAutoScroller(Scrollable.of(context));
+
           if (header != null && index == 0) {
             return IgnoreEditorSelectionGesture(
               child: header!,
@@ -113,10 +133,12 @@ class PageBlockComponent extends BlockComponentStatelessWidget {
           }
 
           final node = items[index - (header != null ? 1 : 0)];
+
           Widget child = editorState.renderer.build(
             context,
             node,
           );
+
           if (wrapper != null) {
             child = wrapper!(context, node: node, child: child);
           }
