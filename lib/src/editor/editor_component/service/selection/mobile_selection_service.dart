@@ -692,6 +692,7 @@ class _MobileSelectionServiceWidgetState
       reason: SelectionUpdateReason.uiEvent,
       extraInfo: {
         selectionExtraInfoDoNotAttachTextService: false,
+        selectionExtraInfoDisableFloatingToolbar: true,
       },
     );
   }
@@ -805,6 +806,7 @@ class _MobileSelectionServiceWidgetState
       customSelectionType: SelectionType.inline,
       extraInfo: {
         selectionExtraInfoDoNotAttachTextService: false,
+        selectionExtraInfoDisableFloatingToolbar: true,
       },
     );
   }
@@ -917,6 +919,7 @@ class _MobileSelectionServiceWidgetState
       reason: SelectionUpdateReason.uiEvent,
       extraInfo: {
         selectionExtraInfoDoNotAttachTextService: false,
+        selectionExtraInfoDisableFloatingToolbar: true,
       },
     );
   }
