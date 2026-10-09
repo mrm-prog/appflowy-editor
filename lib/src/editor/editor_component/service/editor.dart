@@ -1,8 +1,7 @@
 import 'dart:math';
 
 import 'package:appflowy_editor/appflowy_editor.dart';
-import 'package:appflowy_editor/src/flutter/overlay.dart';
-import 'package:flutter/material.dart' hide Overlay, OverlayEntry;
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // workaround for the issue:
@@ -303,6 +302,7 @@ class _AppFlowyEditorState extends State<AppFlowyEditor> {
           clipBehavior: Clip.none,
           initialEntries: [
             OverlayEntry(
+              canSizeOverlay: widget.shrinkWrap,
               builder: (context) => services!,
             ),
           ],

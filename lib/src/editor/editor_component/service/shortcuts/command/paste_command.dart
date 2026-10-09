@@ -82,7 +82,7 @@ RegExp _phoneRegex = RegExp(r'^\+?' // Optional '+' at start
     r'[0-9]$' // Ensure it ends with a digit
     );
 
-extension on EditorState {
+extension AppFlowyPasteExtension on EditorState {
   Future<bool> pasteHtml(String html) async {
     final nodes = htmlToDocument(html).root.children.toList();
     // remove the front and back empty line
@@ -108,7 +108,10 @@ extension on EditorState {
     return true;
   }
 
-  Future<void> pastePlainText(String plainText) async {
+  Future<void> pastePlainText(
+    String plainText, {
+    bool autoLink = true,
+  }) async {
     final selectionAttributes = getDeltaAttributesInSelectionStart();
     final selection = await deleteSelectionIfNeeded();
 
@@ -129,8 +132,9 @@ extension on EditorState {
         )
         .map((paragraph) {
           final Delta delta = Delta();
-          if (_hrefRegex.hasMatch(paragraph) ||
-              _phoneRegex.hasMatch(paragraph)) {
+          if (autoLink &&
+              (_hrefRegex.hasMatch(paragraph) ||
+                  _phoneRegex.hasMatch(paragraph))) {
             final match = _hrefRegex.firstMatch(paragraph) ??
                 _phoneRegex.firstMatch(paragraph);
             if (match != null) {
