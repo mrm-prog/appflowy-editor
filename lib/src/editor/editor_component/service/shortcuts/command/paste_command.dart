@@ -112,14 +112,16 @@ extension AppFlowyPasteExtension on EditorState {
     String plainText, {
     bool autoLink = true,
   }) async {
-    final selectionAttributes = getDeltaAttributesInSelectionStart();
+    final selectionAttributes =
+        autoLink ? getDeltaAttributesInSelectionStart() : null;
+
     final selection = await deleteSelectionIfNeeded();
 
     if (selection == null) {
       return;
     }
 
-    if (await maybeConvertToUrlOrPhone(plainText)) {
+    if (autoLink && await maybeConvertToUrlOrPhone(plainText)) {
       return;
     }
 
