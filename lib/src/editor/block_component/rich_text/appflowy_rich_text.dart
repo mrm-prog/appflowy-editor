@@ -48,16 +48,21 @@ class AppFlowyRichText extends StatefulWidget {
     this.cursorColor = const Color.fromARGB(255, 0, 0, 0),
     this.selectionColor = const Color.fromARGB(53, 111, 201, 231),
     this.autoCompleteTextProvider,
-    required this.delegate,
+    this.delegate,
     required this.node,
-    required this.editorState,
-  });
+    this.editorState,
+    this.editorStyle,
+    this.renderOnly = false,
+  })  : assert(editorState != null || editorStyle != null),
+        assert(renderOnly || (editorState != null && delegate != null));
 
   /// The node of the rich text.
   final Node node;
 
   /// The editor state.
-  final EditorState editorState;
+  final EditorState? editorState;
+  final EditorStyle? editorStyle;
+  final bool renderOnly;
 
   /// The height of the cursor.
   ///
@@ -82,7 +87,7 @@ class AppFlowyRichText extends StatefulWidget {
   final TextAlign? textAlign;
 
   // get the cursor rect, selection rects or block rect from the delegate
-  final SelectableMixin delegate;
+  final SelectableMixin? delegate;
 
   // this span will be appended to the current text span, mostly, it is used for auto complete
   final AppFlowyAutoCompleteTextProvider? autoCompleteTextProvider;
@@ -123,32 +128,41 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
   RenderParagraph? get _placeholderRenderParagraph =>
       placeholderTextKey.currentContext?.findRenderObject() as RenderParagraph?;
 
+  EditorStyle get _editorStyle =>
+      widget.editorStyle ?? widget.editorState!.editorStyle;
+
   TextSpanDecoratorForAttribute? get textSpanDecoratorForAttribute =>
       widget.textSpanDecoratorForCustomAttributes ??
-      widget.editorState.editorStyle.textSpanDecorator;
+      _editorStyle.textSpanDecorator;
 
   AppFlowyAutoCompleteTextProvider? get autoCompleteTextProvider =>
       widget.autoCompleteTextProvider ??
-      widget.editorState.autoCompleteTextProvider;
+      widget.editorState?.autoCompleteTextProvider;
 
   bool get enableAutoComplete =>
-      widget.editorState.enableAutoComplete && autoCompleteTextProvider != null;
+      !widget.renderOnly &&
+      widget.editorState?.enableAutoComplete == true &&
+      autoCompleteTextProvider != null;
 
   TextStyleConfiguration get textStyleConfiguration =>
-      widget.editorState.editorStyle.textStyleConfiguration;
+      _editorStyle.textStyleConfiguration;
 
   AppFlowyTextSpanOverlayBuilder? get textSpanOverlayBuilder =>
-      widget.textSpanOverlayBuilder ??
-      widget.editorState.editorStyle.textSpanOverlayBuilder;
+      widget.textSpanOverlayBuilder ?? _editorStyle.textSpanOverlayBuilder;
 
   AppFlowyTextSpanBackgroundBuilder? get textSpanBackgroundBuilder =>
       widget.textSpanBackgroundBuilder ??
-      widget.editorState.editorStyle.textSpanBackgroundBuilder;
+      _editorStyle.textSpanBackgroundBuilder;
 
   @override
   void initState() {
     super.initState();
-    confirmContextEnabled();
+
+    if (!widget.renderOnly ||
+        textSpanBackgroundBuilder != null ||
+        textSpanOverlayBuilder != null) {
+      confirmContextEnabled();
+    }
   }
 
   @override
@@ -162,19 +176,26 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
       ],
     );
 
-    if (enableAutoComplete) {
+    if (!widget.renderOnly && enableAutoComplete) {
       final autoCompleteText = _buildAutoCompleteRichText();
       child = Stack(children: [autoCompleteText, child]);
     }
 
+    if (widget.renderOnly) {
+      return child;
+    }
+
     return BlockSelectionContainer(
-      delegate: widget.delegate,
-      listenable: widget.editorState.selectionNotifier,
-      remoteSelection: widget.editorState.remoteSelections,
+      delegate: widget.delegate!,
+      listenable: widget.editorState!.selectionNotifier,
+      remoteSelection: widget.editorState!.remoteSelections,
       node: widget.node,
       cursorColor: widget.cursorColor,
       selectionColor: widget.selectionColor,
-      child: MouseRegion(cursor: SystemMouseCursors.text, child: child),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.text,
+        child: child,
+      ),
     );
   }
 
@@ -428,7 +449,7 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
       text: textSpan,
       textDirection: textDirection(),
       textScaler: TextScaler.linear(
-        widget.editorState.editorStyle.textScaleFactor,
+        _editorStyle.textScaleFactor,
       ),
     );
   }
@@ -462,7 +483,7 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
       text: textSpan,
       textDirection: textDirection(),
       textScaler: TextScaler.linear(
-        widget.editorState.editorStyle.textScaleFactor,
+        _editorStyle.textScaleFactor,
       ),
     );
   }
@@ -492,7 +513,7 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
     textSpan = adjustTextSpan(textSpan);
 
     return ValueListenableBuilder(
-      valueListenable: widget.editorState.selectionNotifier,
+      valueListenable: widget.editorState!.selectionNotifier,
       builder: (_, __, ___) {
         final autoCompleteText = autoCompleteTextProvider?.call(
           context,
@@ -529,7 +550,7 @@ class _AppFlowyRichTextState extends State<AppFlowyRichText>
           text: textSpan,
           textDirection: textDirection(),
           textScaler: TextScaler.linear(
-            widget.editorState.editorStyle.textScaleFactor,
+            _editorStyle.textScaleFactor,
           ),
         );
       },
